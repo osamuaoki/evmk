@@ -51,13 +51,6 @@ I see some shortcomings.
 * evmk doesn't trap native LED signals for CapsLock nor generate one for
   remap-generated CapsLock KEY events.  NumLock situation should be similar.
 
-* Adding native mod keys such as KC_LEFT_SHIFT in extra-layer didn't work well
-  with SPACE as the dual-function layer activating key.  Current work around
-  uses KC_WAKEUP in combination with mod-layer.
-
-* Native mod keys held down doesn't produce repeat events.  Unless tapped in a
-  short interval, it doesn't produce output since KEY UP happens after tap time. 
-
 ## LICENSE
 
 GPL2+ or MIT whichever you like
