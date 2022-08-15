@@ -707,13 +707,13 @@ def read_and_write(args):
                                     # other KEY tapped or held dn/up
                                     que1[0].grp_dfk = MODKEY
                                     for j in range(1, len(que1)):
-                                        if que1[j].grp_value == KEY_DN:
-                                            break
                                         if (
                                             que1[j].grp_code_orig
                                             == que1[0].grp_code_orig
                                         ):
                                             que1[j].grp_dfk = MODKEY
+                                            if que1[j].grp_value == KEY_UP:
+                                                break
                                     if "3" in args.section.upper():
                                         que1[0].report_ev(
                                             "P3 MOD(external)", time_ms_old_in, args
@@ -736,10 +736,10 @@ def read_and_write(args):
                             else:
                                 que1[0].grp_dfk = MODKEY
                                 for j in range(1, len(que1)):
-                                    if que1[j].grp_value == KEY_DN:
-                                        break
                                     if que1[j].grp_code_orig == que1[0].grp_code_orig:
                                         que1[j].grp_dfk = MODKEY
+                                        if que1[j].grp_value == KEY_UP:
+                                            break
                                 if "3" in args.section.upper():
                                     que1[0].report_ev(
                                         "P3 MOD(time)", time_ms_old_in, args
