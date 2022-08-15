@@ -744,8 +744,9 @@ def read_and_write(args):
                 elif que1[0].grp_value == KEY_UP:
                     que1[0].grp_dfk = dfk_state_matrix[que1[0].grp_code_orig].last_dfk
                     que1[0].grp_code = dfk_state_matrix[que1[0].grp_code_orig].last_code
-                    xtime_ms = que1[0].time_ms
-                    xgrp_code_orig = que1[0].grp_code_orig
+                    if que1[0].grp_dfk == BASEKEY:
+                        xtime_ms = que1[0].time_ms
+                        xgrp_code_orig = que1[0].grp_code_orig
                 else:  # elif que1[0].grp_value == KEY_RP:
                     que1[0].grp_dfk = dfk_state_matrix[que1[0].grp_code_orig].last_dfk
                     que1[0].grp_code = dfk_state_matrix[que1[0].grp_code_orig].last_code
