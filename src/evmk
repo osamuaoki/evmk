@@ -618,7 +618,9 @@ def read_and_write(args):
     (M, N, map) = read_keymap()
     layer = 0
     key = key_event_grp()
-    dfk_state_matrix = [dfk_state()] * M # Store last dfk and code for each grp_code_orig
+    dfk_state_matrix = [
+        dfk_state()
+    ] * M  # Store last dfk and code for each grp_code_orig
     # time_ms in ms (real) -- TAP_HOLD_TIME/2 ms offset
     time_ms_old_in = int((time.time_ns() / 1000000) - (TAP_HOLD_TIME / 2))
     time_ms_old_out = time_ms_old_in
@@ -680,7 +682,10 @@ def read_and_write(args):
                 if que1[0].grp_value == KEY_DN:
                     if map[que1[0].grp_code_orig][layer] & 0xFFFF000 == 0:
                         que1[0].grp_dfk = BASEKEY
-                    elif que1[0].del_time_ms(xtime_ms) < TAP_GAP_TIME and xgrp_code_orig == que1[0].grp_code_orig:
+                    elif (
+                        que1[0].del_time_ms(xtime_ms) < TAP_GAP_TIME
+                        and xgrp_code_orig == que1[0].grp_code_orig
+                    ):
                         que1[0].grp_dfk = BASEKEY
                     else:
                         que1[0].grp_dfk = TBDKEY
@@ -701,7 +706,10 @@ def read_and_write(args):
                                 ):
                                     # other KEY tapped
                                     for j in range(0, i):
-                                        if que1[j].grp_code_orig == que1[0].grp_code_orig:
+                                        if (
+                                            que1[j].grp_code_orig
+                                            == que1[0].grp_code_orig
+                                        ):
                                             que1[j].grp_dfk = MODKEY
                                     if "3" in args.section.upper():
                                         que1[0].report_ev(
@@ -712,7 +720,10 @@ def read_and_write(args):
                                     and que1[i].grp_code_orig == que1[0].grp_code_orig
                                 ):
                                     for j in range(0, i + 1):
-                                        if que1[j].grp_code_orig == que1[0].grp_code_orig:
+                                        if (
+                                            que1[j].grp_code_orig
+                                            == que1[0].grp_code_orig
+                                        ):
                                             que1[j].grp_dfk = BASEKEY
                                     if "3" in args.section.upper():
                                         que1[0].report_ev(
@@ -724,7 +735,9 @@ def read_and_write(args):
                                     if que1[j].grp_code_orig == que1[0].grp_code_orig:
                                         que1[j].grp_dfk = MODKEY
                                 if "3" in args.section.upper():
-                                    que1[0].report_ev("P3 MOD(time)", time_ms_old_in, args)
+                                    que1[0].report_ev(
+                                        "P3 MOD(time)", time_ms_old_in, args
+                                    )
                                 break
                     dfk_state_matrix[que1[0].grp_code_orig].last_dfk = que1[0].grp_dfk
                     dfk_state_matrix[que1[0].grp_code_orig].last_code = que1[0].grp_code
@@ -737,9 +750,7 @@ def read_and_write(args):
                     que1[0].grp_dfk = dfk_state_matrix[que1[0].grp_code_orig].last_dfk
                     que1[0].grp_code = dfk_state_matrix[que1[0].grp_code_orig].last_code
                 if "3" in args.section.upper():
-                    que1[0].report_layer(
-                        "P3", time_ms_old_in, layer, args
-                    )
+                    que1[0].report_layer("P3", time_ms_old_in, layer, args)
 
                 #############################################################
                 # Report que1 after KEY_DN processing
@@ -808,7 +819,7 @@ def read_and_write(args):
                         if que1key.grp_value == KEY_UP:  # Released
                             layer = MOD_LAYER0
                         else:
-                            #elif que1key.grp_value == KEY_DN:  # Pressed
+                            # elif que1key.grp_value == KEY_DN:  # Pressed
                             if mod & (1 << 8):
                                 layer = MOD_LAYER0
                             elif mod & (1 << 9):
@@ -830,7 +841,7 @@ def read_and_write(args):
                             if layer >= N:
                                 layer = N - 1  # force override
                             # logger.info("M: layer changed to {}".format(layer))
-                        #else:  # Repeat
+                        # else:  # Repeat
                         #    pass  # NOP
                 else:  # que1[0].grp_dfk == TBDPKEY
                     # no que1.popleft()
