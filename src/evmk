@@ -618,9 +618,9 @@ def read_and_write(args):
     (M, N, map) = read_keymap()
     layer = 0
     key = key_event_grp()
-    dfk_state_matrix = [
-        dfk_state()
-    ] * M  # Store last dfk and code for each grp_code_orig
+    dfk_state_matrix = []
+    for i in range(M):
+        dfk_state_matrix.append(dfk_state())
     # time_ms in ms (real) -- TAP_HOLD_TIME/2 ms offset
     time_ms_old_in = int((time.time_ns() / 1000000) - (TAP_HOLD_TIME / 2))
     time_ms_old_out = time_ms_old_in
