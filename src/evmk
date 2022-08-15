@@ -600,20 +600,10 @@ def report_que(que, id, layer, time_ms_old, args):
         quekey.report_ev(idx, time_ms_old, args)
 
 
-# DFK types
-DFK_NO = False
-DFK_YES = True
-
-
 class dfk_state:
-    def __init__(self, type):
-        self.type = type
+    def __init__(self):
         self.last_code = KC_WAKEUP
         self.last_dfk = BASEKEY
-
-    def update(self, last_code, last_dfk):
-        self.last_code = last_code
-        self.last_dfk = last_dfk
 
 
 #######################################################################
@@ -628,14 +618,7 @@ def read_and_write(args):
     (M, N, map) = read_keymap()
     layer = 0
     key = key_event_grp()
-    dfk_state_matrix = []  # Store dfk_state for each grp_code_orig
-    for m in range(M):
-        type = DFK_NO
-        for n in range(N):
-            if map[m][n] & 0xFFFF000 != 0:
-                type = DFK_YES
-        dfk_state_item = dfk_state(type)
-        dfk_state_matrix.append(dfk_state_item)
+    dfk_state_matrix = [dfk_state()] * M # Store last dfk and code for each grp_code_orig
     # time_ms in ms (real) -- TAP_HOLD_TIME/2 ms offset
     time_ms_old_in = int((time.time_ns() / 1000000) - (TAP_HOLD_TIME / 2))
     time_ms_old_out = time_ms_old_in
