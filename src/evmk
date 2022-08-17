@@ -53,6 +53,9 @@ logger.addHandler(journal.JournalHandler())
 #######################################################################
 TAP_HOLD_TIME = 200  # ms
 TAP_GAP_TIME = 150  # ms
+KC_ESC = 1
+PASS_THROUGH_KC = KC_ESC
+PASS_THROUGH_COUNT = 100
 
 EV_TYPE = {
     0: "SYN",
@@ -607,83 +610,65 @@ class Dfk_State:
 
 
 class Input_State:
-    def __init__(self, last_time_ms, layer):
+    def __init__(self, last_time_ms, layer, pass_through):
         self.last_code_orig = KC_WAKEUP
         self.last_time_ms = last_time_ms
         self.layer = layer
+        self.pass_through = pass_through
 
 
 class Output_State:
     def __init__(self, last_time_ms):
         self.last_time_ms = last_time_ms
 
+    #################################################################
+    # KEY no conversion for grp
+    #################################################################
+
+
+def pass_through_input_que(que1, que2):
+    key = que1.popleft()
+    key.grp_dfk = BASEKEY
+    key.grp_code = key.grp_code_orig
+    que2.append(key)
+
+    #################################################################
+    # KEY conversion for grp with input_state.layer
+    #################################################################
+
 
 def process_input_que(que1, que2, M, N, dfk_state, input_state, args):
-    #####################################################################
-    # monitor que1 data to be processed
-    #####################################################################
-    if "2" in args.section.upper():
-        report_que(que1, "P2", input_state.last_time_ms, input_state.layer, args)
-    #####################################################################
-    # process que1 for key conversion with input_state.layer
-    #####################################################################
-    while len(que1) > 0:
-        #################################################################
-        # KEY conversion for grp with input_state.layer
-        #################################################################
-        key = que1[0]
-        if key.grp and key.grp_type == TYPE_KEY and key.grp_code_orig < M:
-            key.grp_code = key.grp_map[input_state.layer]
-            if key.grp_value == KEY_DN:
-                if key.grp_code & 0xFFFF000 == 0:
-                    key.grp_dfk = BASEKEY
-                elif (
-                    key.del_time_ms(input_state.last_time_ms) < TAP_GAP_TIME
-                    and input_state.last_code_orig == key.grp_code_orig
-                ):
-                    key.grp_dfk = BASEKEY
-                else:
-                    key.grp_dfk = TBDKEY
-                    # let's check followings inputs
-                    tapped_keys = {}
-                    for i in range(1, len(que1), 1):
-                        if que1[i].del_time_ms(key.time_ms) < TAP_HOLD_TIME:
-                            if (
-                                que1[i].grp_value == KEY_DN
-                                and que1[i].grp_code_orig != key.grp_code_orig
-                            ):
-                                tapped_keys[i] = que1[i].grp_code_orig
-                            if (
-                                que1[i].grp_value != KEY_DN
-                                and que1[i].grp_code_orig != key.grp_code_orig
-                                and que1[i].grp_code_orig in tapped_keys.values()
-                            ):
-                                # other KEY tapped or held dn/up
-                                key.grp_dfk = MODKEY
-                                for j in range(1, len(que1)):
-                                    if que1[j].grp_code_orig == key.grp_code_orig:
-                                        que1[j].grp_dfk = MODKEY
-                                        if que1[j].grp_value == KEY_UP:
-                                            break
-                                if "3" in args.section.upper():
-                                    key.report_ev(
-                                        "P3 MOD(external)",
-                                        input_state.last_time_ms,
-                                        args,
-                                    )
-                            if (
-                                que1[i].grp_value == KEY_UP
-                                and que1[i].grp_code_orig == key.grp_code_orig
-                            ):
-                                for j in range(i + 1):
-                                    if que1[j].grp_code_orig == key.grp_code_orig:
-                                        que1[j].grp_dfk = BASEKEY
-                                if "3" in args.section.upper():
-                                    key.report_ev(
-                                        "P3 TAP(time)", input_state.last_time_ms, args
-                                    )
-                                break
-                        else:
+    #################################################################
+    # KEY conversion for grp with input_state.layer
+    #################################################################
+    key = que1[0]
+    if key.grp and key.grp_type == TYPE_KEY and key.grp_code_orig < M:
+        key.grp_code = key.grp_map[input_state.layer]
+        if key.grp_value == KEY_DN:
+            if key.grp_code & 0xFFFF000 == 0:
+                key.grp_dfk = BASEKEY
+            elif (
+                key.del_time_ms(input_state.last_time_ms) < TAP_GAP_TIME
+                and input_state.last_code_orig == key.grp_code_orig
+            ):
+                key.grp_dfk = BASEKEY
+            else:
+                key.grp_dfk = TBDKEY
+                # let's check followings inputs
+                tapped_keys = {}
+                for i in range(1, len(que1), 1):
+                    if que1[i].del_time_ms(key.time_ms) < TAP_HOLD_TIME:
+                        if (
+                            que1[i].grp_value == KEY_DN
+                            and que1[i].grp_code_orig != key.grp_code_orig
+                        ):
+                            tapped_keys[i] = que1[i].grp_code_orig
+                        if (
+                            que1[i].grp_value != KEY_DN
+                            and que1[i].grp_code_orig != key.grp_code_orig
+                            and que1[i].grp_code_orig in tapped_keys.values()
+                        ):
+                            # other KEY tapped or held dn/up
                             key.grp_dfk = MODKEY
                             for j in range(1, len(que1)):
                                 if que1[j].grp_code_orig == key.grp_code_orig:
@@ -692,121 +677,141 @@ def process_input_que(que1, que2, M, N, dfk_state, input_state, args):
                                         break
                             if "3" in args.section.upper():
                                 key.report_ev(
-                                    "P3 MOD(time)", input_state.last_time_ms, args
+                                    "P3 MOD(external)",
+                                    input_state.last_time_ms,
+                                    args,
+                                )
+                        if (
+                            que1[i].grp_value == KEY_UP
+                            and que1[i].grp_code_orig == key.grp_code_orig
+                        ):
+                            for j in range(i + 1):
+                                if que1[j].grp_code_orig == key.grp_code_orig:
+                                    que1[j].grp_dfk = BASEKEY
+                            if "3" in args.section.upper():
+                                key.report_ev(
+                                    "P3 TAP(time)", input_state.last_time_ms, args
                                 )
                             break
-                dfk_state[key.grp_code_orig].last_dfk = key.grp_dfk
-                dfk_state[key.grp_code_orig].last_code = key.grp_code
-            elif key.grp_value == KEY_UP:
-                key.grp_dfk = dfk_state[key.grp_code_orig].last_dfk
-                key.grp_code = dfk_state[key.grp_code_orig].last_code
-                if key.grp_dfk == BASEKEY:
-                    input_state.last_time_ms = key.time_ms
-                    input_state.last_code_orig = key.grp_code_orig
-            else:  # elif key.grp_value == KEY_RP:
-                key.grp_dfk = dfk_state[key.grp_code_orig].last_dfk
-                key.grp_code = dfk_state[key.grp_code_orig].last_code
-            if "3" in args.section.upper():
-                key.report_layer(
-                    "P3", input_state.last_time_ms, input_state.layer, args
-                )
-
-            #############################################################
-            # Report que1 after KEY_DN processing
-            #############################################################
-            if "4" in args.section.upper():
-                report_que(
-                    que1, "P4", input_state.last_time_ms, input_state.layer, args
-                )
-        #################################################################
-        # Pass from key to que2
-        #################################################################
-        if "5" in args.section.upper():
-            key.report_ev("P5", input_state.last_time_ms, args)
-        if key.grp and key.grp_type == TYPE_KEY and key.grp_code_orig < M:
-            if key.grp_dfk == BASEKEY:
-                # logger.info("BASE: len={} code={:02x} layer= {} dfk={}".format(len(que1), key.grp_code, input_state.layer, key.grp_dfk))
-                que1.popleft()
-                if key.grp:
-                    # Drop modifier data for grouped keys
-                    key.grp_code = key.grp_code & 0x3FF
-                if key.grp_value == KEY_RP:
-                    if key.grp_code not in MODKEYS:
-                        que2.append(key)
-                else:  # key.grp_value == KEY_UP or KEY_DN
-                    que2.append(key)
-            elif key.grp_dfk == MODKEY:  # only .grp=True
-                que1.popleft()
-                mod = key.grp_code >> 16
-                # modifiers (mod low bits) are not mutually exclusive
-                if mod & (1 << 0):
-                    key.grp_code = KC_LEFT_SHIFT
-                    if key.grp_value != KEY_RP:
-                        que2.append(key)
-                if mod & (1 << 1):
-                    key.grp_code = KC_LEFT_CTRL
-                    if key.grp_value != KEY_RP:
-                        que2.append(key)
-                if mod & (1 << 2):
-                    key.grp_code = KC_LEFT_ALT
-                    if key.grp_value != KEY_RP:
-                        que2.append(key)
-                if mod & (1 << 3):
-                    key.grp_code = KC_LEFT_META
-                    if key.grp_value != KEY_RP:
-                        que2.append(key)
-                if mod & (1 << 4):
-                    key.grp_code = KC_RIGHT_SHIFT
-                    if key.grp_value != KEY_RP:
-                        que2.append(key)
-                if mod & (1 << 5):
-                    key.grp_code = KC_RIGHT_CTRL
-                    if key.grp_value != KEY_RP:
-                        que2.append(key)
-                if mod & (1 << 6):
-                    key.grp_code = KC_RIGHT_ALT
-                    if key.grp_value != KEY_RP:
-                        que2.append(key)
-                if mod & (1 << 7):
-                    key.grp_code = KC_RIGHT_META
-                    if key.grp_value != KEY_RP:
-                        que2.append(key)
-                # layers (mod low bits) are mutually exclusive
-                if mod & 0xFF00:  # layer
-                    if key.grp_value == KEY_UP:  # Released
-                        input_state.layer = MOD_LAYER0
                     else:
-                        # elif key.grp_value == KEY_DN:  # Pressed
-                        if mod & (1 << 8):
-                            input_state.layer = MOD_LAYER0
-                        elif mod & (1 << 9):
-                            input_state.layer = MOD_LAYER1
-                        elif mod & (1 << 10):
-                            input_state.layer = MOD_LAYER2
-                        elif mod & (1 << 11):
-                            input_state.layer = MOD_LAYER3
-                        elif mod & (1 << 12):
-                            input_state.layer = MOD_LAYER4
-                        elif mod & (1 << 13):
-                            input_state.layer = MOD_LAYER5
-                        elif mod & (1 << 14):
-                            input_state.layer = MOD_LAYER6
-                        elif mod & (1 << 15):
-                            input_state.layer = MOD_LAYER7
-                        else:
-                            pass
-                        if input_state.layer >= N:
-                            input_state.layer = N - 1  # force override
-                        # logger.info("M: layer changed to {}".format(input_state.layer))
-                    # else:  # Repeat
-                    #    pass  # NOP
-            else:  # key.grp_dfk == TBDPKEY
-                # no que1.popleft()
-                break  # Don't process uncertain keys -> read-in more
-        else:  # single, LED, high-bit (WAKEUP)
+                        key.grp_dfk = MODKEY
+                        for j in range(1, len(que1)):
+                            if que1[j].grp_code_orig == key.grp_code_orig:
+                                que1[j].grp_dfk = MODKEY
+                                if que1[j].grp_value == KEY_UP:
+                                    break
+                        if "3" in args.section.upper():
+                            key.report_ev(
+                                "P3 MOD(time)", input_state.last_time_ms, args
+                            )
+                        break
+            dfk_state[key.grp_code_orig].last_dfk = key.grp_dfk
+            dfk_state[key.grp_code_orig].last_code = key.grp_code
+        elif key.grp_value == KEY_UP:
+            key.grp_dfk = dfk_state[key.grp_code_orig].last_dfk
+            key.grp_code = dfk_state[key.grp_code_orig].last_code
+            if key.grp_dfk == BASEKEY:
+                input_state.last_time_ms = key.time_ms
+                input_state.last_code_orig = key.grp_code_orig
+        else:  # elif key.grp_value == KEY_RP:
+            key.grp_dfk = dfk_state[key.grp_code_orig].last_dfk
+            key.grp_code = dfk_state[key.grp_code_orig].last_code
+        if "3" in args.section.upper():
+            key.report_layer("P3", input_state.last_time_ms, input_state.layer, args)
+
+        #############################################################
+        # Report que1 after KEY_DN processing
+        #############################################################
+        if "4" in args.section.upper():
+            report_que(que1, "P4", input_state.last_time_ms, input_state.layer, args)
+    #################################################################
+    # Pass from key to que2
+    #################################################################
+    if "5" in args.section.upper():
+        key.report_ev("P5", input_state.last_time_ms, args)
+    if key.grp and key.grp_type == TYPE_KEY and key.grp_code_orig < M:
+        if key.grp_dfk == BASEKEY:
+            # logger.info("BASE: len={} code={:02x} layer= {} dfk={}".format(len(que1), key.grp_code, input_state.layer, key.grp_dfk))
             que1.popleft()
-            que2.append(key)
-    # end of while loop for que1
+            if key.grp_value == KEY_RP:
+                if key.grp_code not in MODKEYS:
+                    que2.append(key)
+            else:  # key.grp_value == KEY_UP or KEY_DN
+                que2.append(key)
+        elif key.grp_dfk == MODKEY:  # only .grp=True
+            que1.popleft()
+            mod = key.grp_code >> 16
+            # modifiers (mod low bits) are not mutually exclusive
+            if mod & (1 << 0):
+                key.grp_code = KC_LEFT_SHIFT
+                if key.grp_value != KEY_RP:
+                    que2.append(key)
+            if mod & (1 << 1):
+                key.grp_code = KC_LEFT_CTRL
+                if key.grp_value != KEY_RP:
+                    que2.append(key)
+            if mod & (1 << 2):
+                key.grp_code = KC_LEFT_ALT
+                if key.grp_value != KEY_RP:
+                    que2.append(key)
+            if mod & (1 << 3):
+                key.grp_code = KC_LEFT_META
+                if key.grp_value != KEY_RP:
+                    que2.append(key)
+            if mod & (1 << 4):
+                key.grp_code = KC_RIGHT_SHIFT
+                if key.grp_value != KEY_RP:
+                    que2.append(key)
+            if mod & (1 << 5):
+                key.grp_code = KC_RIGHT_CTRL
+                if key.grp_value != KEY_RP:
+                    que2.append(key)
+            if mod & (1 << 6):
+                key.grp_code = KC_RIGHT_ALT
+                if key.grp_value != KEY_RP:
+                    que2.append(key)
+            if mod & (1 << 7):
+                key.grp_code = KC_RIGHT_META
+                if key.grp_value != KEY_RP:
+                    que2.append(key)
+            # layers (mod low bits) are mutually exclusive
+            if mod & 0xFF00:  # layer
+                if key.grp_value == KEY_UP:  # Released
+                    input_state.layer = MOD_LAYER0
+                else:
+                    # elif key.grp_value == KEY_DN:  # Pressed
+                    if mod & (1 << 8):
+                        input_state.layer = MOD_LAYER0
+                    elif mod & (1 << 9):
+                        input_state.layer = MOD_LAYER1
+                    elif mod & (1 << 10):
+                        input_state.layer = MOD_LAYER2
+                    elif mod & (1 << 11):
+                        input_state.layer = MOD_LAYER3
+                    elif mod & (1 << 12):
+                        input_state.layer = MOD_LAYER4
+                    elif mod & (1 << 13):
+                        input_state.layer = MOD_LAYER5
+                    elif mod & (1 << 14):
+                        input_state.layer = MOD_LAYER6
+                    elif mod & (1 << 15):
+                        input_state.layer = MOD_LAYER7
+                    else:
+                        pass
+                    if input_state.layer >= N:
+                        input_state.layer = N - 1  # force override
+                    # logger.info("M: layer changed to {}".format(input_state.layer))
+                # else:  # Repeat
+                #    pass  # NOP
+        else:  # key.grp_dfk == TBDPKEY
+            # no que1.popleft()
+            # len(que1) is not 0, force to exit look with break required
+            return True
+    else:  # single, LED, high-bit (WAKEUP)
+        que1.popleft()
+        que2.append(key)
+    # len(que1) should be 0
+    return False
 
 
 def process_output_que(que2, output_state, args):
@@ -828,7 +833,7 @@ def process_output_que(que2, output_state, args):
                             key.ev_t_s,
                             key.ev_t_us,
                             1,
-                            key.grp_code,
+                            key.grp_code & 0x3FF,
                             key.grp_value,
                         )
                     )
@@ -840,7 +845,7 @@ def process_output_que(que2, output_state, args):
                             key.ev_t_s,
                             key.ev_t_us,
                             1,
-                            key.grp_code,
+                            key.grp_code & 0x3FF,
                             key.grp_value,
                         )
                     )
@@ -871,6 +876,7 @@ def read_and_write(args):
     que1 = collections.deque()
     que2 = collections.deque()
     (M, N, keymap) = read_keymap()
+    count = 0
     layer = 0
     key = key_event_grp()
     # initial dfk_state
@@ -880,7 +886,7 @@ def read_and_write(args):
     # time_ms in ms (real) -- TAP_HOLD_TIME/2 ms offset
     time_ms = int(time.time_ns() / 1000000 - TAP_HOLD_TIME)
     # initial last_key_state_data
-    input_state = Input_State(time_ms, layer)
+    input_state = Input_State(time_ms, layer, args.pass_through)
     output_state = Output_State(time_ms)
     while True:
         # use of select.select didn't work well
@@ -900,6 +906,20 @@ def read_and_write(args):
         if not key.grp_ready:
             #  group data until SYN w/o calling key = key_event_grp()
             continue
+        if (
+            key.grp
+            and key.grp_type == TYPE_KEY
+            and key.grp_code_orig == PASS_THROUGH_KC
+        ):
+            count += 1
+            if count > 1:
+                logger.warning("count = {}".format(count))
+        else:
+            count = 0
+        if count > PASS_THROUGH_COUNT:
+            count = PASS_THROUGH_COUNT
+            input_state.pass_through = True
+            logger.warning("pass through enabled")
         #####################################################################
         # process group to set up initial internal values
         #####################################################################
@@ -915,7 +935,21 @@ def read_and_write(args):
         # update que1 data with the new input event
         #####################################################################
         que1.append(key)
-        process_input_que(que1, que2, M, N, dfk_state, input_state, args)
+        #####################################################################
+        # monitor que1 data to be processed
+        #####################################################################
+        if "2" in args.section.upper():
+            report_que(que1, "P2", input_state.last_time_ms, input_state.layer, args)
+        #####################################################################
+        # process que1 for key conversion with input_state.layer
+        #####################################################################
+        if input_state.pass_through:
+            while len(que1) > 0:
+                pass_through_input_que(que1, que2)
+        else:
+            while len(que1) > 0:
+                if process_input_que(que1, que2, M, N, dfk_state, input_state, args):
+                    break
         process_output_que(que2, output_state, args)
         del key
         key = key_event_grp()
@@ -976,6 +1010,13 @@ See See https://github.com/osamuaoki/{}
         action="store_true",
         default=False,
         help="monitor only (no stdout)",
+    )
+    parser.add_argument(
+        "-p",
+        "--pass-through",
+        action="store_true",
+        default=False,
+        help="force pass through for input que",
     )
     parser.add_argument(
         "-s",
