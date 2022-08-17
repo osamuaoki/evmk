@@ -12,6 +12,20 @@ ease of coding. C/C++/go re-implementation for speed and size is desirable.
 evmk is a Linux evdev signal filter and logging script used with the
 **interception-tools**. 
 
+### Supported features of evmk
+
+* Key code remapping
+* Key code logging
+* Dual-Function keys (DFK) for tap and hold
+  * Support classical hold behavior by tap -> short-gap -> hold
+  * Support time independent hold detection mechanism
+  * Release key code based on the last press code result
+  * Layer keys (up to 8 layers) as DFK
+  * Mod keys (8 mod keys: [LEFT|RIGHT][SHIFT|CONTROL|ALT|META]) as DFK
+* Support pass through after consecutive 100 * ESCs
+
+### Usage of evmk
+
 ```
 usage: evmk [-h] [-t] [-d] [-v [u|a|o]] [-g] [-m] [-s SECTION] [-l LOG]
 
