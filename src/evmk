@@ -605,15 +605,18 @@ class Dfk_State:
         self.last_code = KC_WAKEUP
         self.last_dfk = BASEKEY
 
+
 class Input_State:
     def __init__(self, last_time_ms, layer):
         self.last_code_orig = KC_WAKEUP
         self.last_time_ms = last_time_ms
         self.layer = layer
 
+
 class Output_State:
     def __init__(self, last_time_ms):
         self.last_time_ms = last_time_ms
+
 
 def process_input_que(que1, que2, M, N, dfk_state, input_state, args):
     #####################################################################
@@ -629,11 +632,7 @@ def process_input_que(que1, que2, M, N, dfk_state, input_state, args):
         # KEY conversion for grp with input_state.layer
         #################################################################
         key = que1[0]
-        if (
-            key.grp
-            and key.grp_type == TYPE_KEY
-            and key.grp_code_orig < M
-        ):
+        if key.grp and key.grp_type == TYPE_KEY and key.grp_code_orig < M:
             key.grp_code = key.grp_map[input_state.layer]
             if key.grp_value == KEY_DN:
                 if key.grp_code & 0xFFFF000 == 0:
@@ -662,26 +661,22 @@ def process_input_que(que1, que2, M, N, dfk_state, input_state, args):
                                 # other KEY tapped or held dn/up
                                 key.grp_dfk = MODKEY
                                 for j in range(1, len(que1)):
-                                    if (
-                                        que1[j].grp_code_orig
-                                        == key.grp_code_orig
-                                    ):
+                                    if que1[j].grp_code_orig == key.grp_code_orig:
                                         que1[j].grp_dfk = MODKEY
                                         if que1[j].grp_value == KEY_UP:
                                             break
                                 if "3" in args.section.upper():
                                     key.report_ev(
-                                        "P3 MOD(external)", input_state.last_time_ms, args
+                                        "P3 MOD(external)",
+                                        input_state.last_time_ms,
+                                        args,
                                     )
                             if (
                                 que1[i].grp_value == KEY_UP
                                 and que1[i].grp_code_orig == key.grp_code_orig
                             ):
                                 for j in range(i + 1):
-                                    if (
-                                        que1[j].grp_code_orig
-                                        == key.grp_code_orig
-                                    ):
+                                    if que1[j].grp_code_orig == key.grp_code_orig:
                                         que1[j].grp_dfk = BASEKEY
                                 if "3" in args.section.upper():
                                     key.report_ev(
@@ -712,23 +707,23 @@ def process_input_que(que1, que2, M, N, dfk_state, input_state, args):
                 key.grp_dfk = dfk_state[key.grp_code_orig].last_dfk
                 key.grp_code = dfk_state[key.grp_code_orig].last_code
             if "3" in args.section.upper():
-                key.report_layer("P3", input_state.last_time_ms, input_state.layer, args)
+                key.report_layer(
+                    "P3", input_state.last_time_ms, input_state.layer, args
+                )
 
             #############################################################
             # Report que1 after KEY_DN processing
             #############################################################
             if "4" in args.section.upper():
-                report_que(que1, "P4", input_state.last_time_ms, input_state.layer, args)
+                report_que(
+                    que1, "P4", input_state.last_time_ms, input_state.layer, args
+                )
         #################################################################
         # Pass from key to que2
         #################################################################
         if "5" in args.section.upper():
             key.report_ev("P5", input_state.last_time_ms, args)
-        if (
-            key.grp
-            and key.grp_type == TYPE_KEY
-            and key.grp_code_orig < M
-        ):
+        if key.grp and key.grp_type == TYPE_KEY and key.grp_code_orig < M:
             if key.grp_dfk == BASEKEY:
                 # logger.info("BASE: len={} code={:02x} layer= {} dfk={}".format(len(que1), key.grp_code, input_state.layer, key.grp_dfk))
                 que1.popleft()
@@ -813,6 +808,7 @@ def process_input_que(que1, que2, M, N, dfk_state, input_state, args):
             que2.append(key)
     # end of while loop for que1
 
+
 def process_output_que(que2, output_state, args):
     #####################################################################
     # outut que2
@@ -825,9 +821,7 @@ def process_output_que(que2, output_state, args):
             if key.grp_scan != NONE:
                 if not args.monitor:
                     sys.stdout.buffer.write(
-                        EV.pack(
-                            key.ev_t_s, key.ev_t_us, 0, 0, key.grp_scan
-                        )
+                        EV.pack(key.ev_t_s, key.ev_t_us, 0, 0, key.grp_scan)
                     )
                     sys.stdout.buffer.write(
                         EV.pack(
@@ -838,9 +832,7 @@ def process_output_que(que2, output_state, args):
                             key.grp_value,
                         )
                     )
-                    sys.stdout.buffer.write(
-                        EV.pack(key.ev_t_s, key.ev_t_us, 4, 4, 0)
-                    )
+                    sys.stdout.buffer.write(EV.pack(key.ev_t_s, key.ev_t_us, 4, 4, 0))
             else:
                 if not args.monitor:
                     sys.stdout.buffer.write(
@@ -852,9 +844,7 @@ def process_output_que(que2, output_state, args):
                             key.grp_value,
                         )
                     )
-                    sys.stdout.buffer.write(
-                        EV.pack(key.ev_t_s, key.ev_t_us, 4, 4, 1)
-                    )
+                    sys.stdout.buffer.write(EV.pack(key.ev_t_s, key.ev_t_us, 4, 4, 1))
         else:  # single
             if not args.monitor:
                 sys.stdout.buffer.write(
@@ -869,7 +859,6 @@ def process_output_que(que2, output_state, args):
         output_state.last_time_ms = key.time_ms
         # Seemingly good idea of flush() causes infinite repeat-key problem
         # sys.stdout.buffer.flush()
-
 
 
 #######################################################################
