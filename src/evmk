@@ -51,11 +51,23 @@ logger.addHandler(journal.JournalHandler())
 #######################################################################
 # common kbd event data constants and functions
 #######################################################################
+# * install "udevmon.service" in "/etc/systemd/system/"
+# * run "sudo systemctl enamble udevmon.service"
+# * install "keymap.csv" to "/etc/interception/"
+# * install "evmk" to /usr/local/bin/"
+# * install "laptop-kbd.yaml" into "/etc/interception/udevmon.d"
+# * content of "laptop-kbd.yaml":
+#  - JOB: "intercept -g $DEVNODE | /usr/local/bin/evmk -t -d -g -l INFO | uinput -d $DEVNODE"
+#    -  LINK: /dev/input/by-path/platform-i8042-serio-0-event-kbd
+
+
 TAP_HOLD_TIME = 200  # ms
 TAP_GAP_TIME = 150  # ms
 KC_ESC = 1
 PASS_THROUGH_KC = KC_ESC
 PASS_THROUGH_COUNT = 100
+CONF_FILE = "/etc/interception/keymap.csv"
+
 
 EV_TYPE = {
     0: "SYN",
@@ -875,7 +887,7 @@ EV = struct.Struct("llHHI")
 def read_and_write(args):
     que1 = collections.deque()
     que2 = collections.deque()
-    (M, N, keymap) = read_keymap()
+    (M, N, keymap) = read_keymap(fn=CONF_FILE)
     count = 0
     layer = 0
     key = key_event_grp()
