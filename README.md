@@ -17,8 +17,12 @@ evmk is a Linux evdev signal filter and logging script used with the
 * Key code remapping
 * Key code logging
 * Dual-Function keys (DFK) for tap and hold
-  * Support classical hold behavior by tap -> short-gap -> hold
-  * Support time independent hold detection mechanism
+  * Support tap behavior for short press to emit a key code.
+  * Support hold behavior for long press to change keyboard mode
+    * layer change to emit a different key code
+    * additional mod keys to be emitted together with the original key code of keys pressed
+  * Support classical hold behavior of repeat by tap -> short-gap -> hold
+  * Support time independent hold detection mechanism in addition to the normal time based one
   * Release key code based on the last press code result
   * Layer keys (up to 8 layers) as DFK
   * Mod keys (8 mod keys: [LEFT|RIGHT][SHIFT|CONTROL|ALT|META]) as DFK
